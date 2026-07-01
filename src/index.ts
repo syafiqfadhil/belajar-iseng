@@ -1,47 +1,28 @@
-import { Elysia, t } from "elysia";
+import { Elysia } from "elysia";
 import { db } from "./db";
 import { users } from "./db/schema";
+import { usersRoute } from "./routes/users-route";
 
-const app = new Elysia()
+export const app = new Elysia()
   .get("/", () => ({
     status: "ok",
     message: "Elysia server is running!",
   }))
   .get("/users", async ({ set }) => {
     try {
-      const result = await db.select().from(users);
+      const result = await db.select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        createdAt: users.createdAt,
+      }).from(users);
       return result;
     } catch (error: any) {
       set.status = 500;
       return { error: error.message };
     }
   })
-  .post("/users", async ({ body, set }) => {
-    try {
-      const [result] = await db.insert(users).values({
-        name: body.name,
-        email: body.email,
-      });
-      
-      set.status = 210; // Created
-      return {
-        success: true,
-        data: {
-          id: result.insertId,
-          name: body.name,
-          email: body.email,
-        }
-      };
-    } catch (error: any) {
-      set.status = 500;
-      return { error: error.message };
-    }
-  }, {
-    body: t.Object({
-      name: t.String({ minLength: 1 }),
-      email: t.String({ format: 'email' }),
-    })
-  })
+  .use(usersRoute)
   .listen(process.env.PORT || 3000);
 
 console.log(
